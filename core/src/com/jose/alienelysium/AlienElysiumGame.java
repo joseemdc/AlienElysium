@@ -41,7 +41,7 @@ import net.mgsx.gltf.scene3d.utils.IBLBuilder;
 import net.mgsx.gltf.scene3d.scene.SceneSkybox;
 
 public class AlienElysiumGame extends ApplicationAdapter implements GestureDetector.GestureListener,InputProcessor {
-	private SceneManager sceneManager;
+	public static SceneManager sceneManager;
 	private SceneAsset sceneAsset;
 	public static Scene scene;
 	public static  PerspectiveCamera camera;
@@ -62,6 +62,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 	
 	@Override
 	public void create () {
+		Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
 		manager.load("skybox/front.png", Texture.class);
 		manager.load("skybox/back.png", Texture.class);
 		manager.load("skybox/left.png", Texture.class);
@@ -70,6 +71,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		manager.load("skybox/bottom.png", Texture.class);
 		manager.load("ui/JoystickSplitted.png", Texture.class);
 		manager.load("ui/SmallHandleFilledGrey.png", Texture.class);
+		sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/pasillos.gltf"));
 		stage = new Stage();
 		while(!manager.update()){
 
@@ -83,16 +85,18 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		Texture tex = manager.get("ui/JoystickSplitted.png", Texture.class);
 		Texture tex2 = manager.get("ui/SmallHandleFilledGrey.png", Texture.class);
 // create scene
-		sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/pasillos.gltf"));
 		scene = new Scene(sceneAsset.scene);
 		sceneManager = new SceneManager();
 		sceneManager.addScene(scene);
 
 		// setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
 		camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		float d = .02f;
+		float d = 30f;
 		camera.near = d / 1000f;
 		camera.far = d * 4;
+		camera.position.set(22.610344f,2.1261232f,2.8562768f);
+		camera.direction.set(-0.99996257f,3.408191E-6f,0.008726494f);
+
 		sceneManager.setCamera(camera);
 		inputMultiplexer = new InputMultiplexer();
 		controller = new FirstPersonCameraController(camera);
@@ -106,6 +110,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 
 		// setup quick IBL (image based lighting)
 		IBLBuilder iblBuilder = IBLBuilder.createOutdoor(light);
+
 		environmentCubemap = iblBuilder.buildEnvMap(1024);
 		diffuseCubemap = iblBuilder.buildIrradianceMap(256);
 		specularCubemap = iblBuilder.buildRadianceMap(10);
@@ -119,18 +124,57 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		sceneManager.environment.set(PBRCubemapAttribute.createSpecularEnv(specularCubemap));
 		sceneManager.environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuseCubemap));
 
+		// Create a new Cubemap using the loaded textures
+		//Cubemap skyboxCubemap = new Cubemap((TextureData) front, (TextureData) back, (TextureData) up, (TextureData) down, (TextureData) right, (TextureData) left);
 		// setup skybox
-		skybox = new SceneSkybox(environmentCubemap);
+		//skybox = new SceneSkybox(environmentCubemap);
+		TextureData frontData = front.getTextureData();
+		TextureData backData = back.getTextureData();
+		TextureData leftData = left.getTextureData();
+		TextureData rightData = right.getTextureData();
+		TextureData upData = up.getTextureData();
+		TextureData downData = down.getTextureData();
+
+		// Ensure textures are prepared
+		if (!frontData.isPrepared()) frontData.prepare();
+		if (!backData.isPrepared()) backData.prepare();
+		if (!leftData.isPrepared()) leftData.prepare();
+		if (!rightData.isPrepared()) rightData.prepare();
+		if (!upData.isPrepared()) upData.prepare();
+		if (!downData.isPrepared()) downData.prepare();
+
+		// Create a new Cubemap using TextureData
+		Cubemap skyboxCubemap = new Cubemap(
+				rightData.consumePixmap(),
+				leftData.consumePixmap(),
+				upData.consumePixmap(),
+				downData.consumePixmap(),
+				frontData.consumePixmap(),
+				backData.consumePixmap()
+		);
+
+		// Dispose TextureData after creating the Cubemap
+		frontData.disposePixmap();
+		backData.disposePixmap();
+		leftData.disposePixmap();
+		rightData.disposePixmap();
+		upData.disposePixmap();
+		downData.disposePixmap();
+		skybox= new SceneSkybox(skyboxCubemap);
 		sceneManager.setSkyBox(skybox);
 
 		//setup touchpad
 		Controller control = new Controller(tex,tex2);
 		stage.addActor(control);
 		control.setPosition(100, 100);
-		control.setBounds(100,100,350,350);
+		control.setBounds(100,100,400,400);
 		inputMultiplexer.addProcessor(stage);
 		inputMultiplexer.addProcessor(controller);
 		Gdx.input.setInputProcessor(inputMultiplexer);
+
+		//scene.animationController.setAnimation("Take 001_Door_Left.001", -1);
+		scene.animations.loopAll();
+
 	}
 
 	@Override
@@ -154,7 +198,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		stage.act(Gdx.graphics.getDeltaTime());
 		controller.update();
 		stage.draw();
-
+		Gdx.app.log("MENSAXES",camera.direction.toString());
 	}
 	
 	@Override
@@ -186,6 +230,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 
 	@Override
 	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+		Gdx.app.log("MENSAXES","TOUCH DOWN DE InputProcessor");
 		return false;
 	}
 
@@ -216,6 +261,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 
 	@Override
 	public boolean touchDown(float x, float y, int pointer, int button) {
+		Gdx.app.log("MENSAXES","TOUCH DOWN DE GESTURELISTENER");
 		return false;
 	}
 

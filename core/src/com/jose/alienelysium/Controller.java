@@ -15,7 +15,8 @@ Files files;
         super(30, Controller.getTouchPadStyle( touchBackground, touchKnob));
         setBounds(100, 100, 100, 100);
 
-        Gdx.app.log("MENSAJE",AlienElysiumGame.scene.cameras.toString());
+        Gdx.app.log("MENSAJE",AlienElysiumGame.sceneManager.camera.toString());
+
     }
     private static TouchpadStyle getTouchPadStyle(Texture touchBackground, Texture touchKnob){
         Skin mitouchpadSkin = new Skin();
@@ -53,7 +54,7 @@ Files files;
 
             // Obtener la dirección de la cámara
           //  Vector3 cameraDirection = AlienElysiumGame.scene.camera.direction.cpy().nor();
-            Vector3 cameraDirection=  AlienElysiumGame.scene.getCamera("camera").direction.cpy().nor();
+            Vector3 cameraDirection=  AlienElysiumGame.sceneManager.camera.direction.cpy().nor();
             // Obtener la dirección perpendicular al plano horizontal (cruzando con el vector Y)
             Vector3 right = cameraDirection.cpy().crs(Vector3.Y).nor();
 
@@ -65,24 +66,17 @@ Files files;
             );
 
             // Desplazar la cámara hacia adelante/atrás
-            AlienElysiumGame.scene.getCamera("camera").translate(cameraDirection.scl(movementSpeed * knobPercentY));
-           // AlienElysiumGame.scene.camera.translate(cameraDirection.scl(movementSpeed * knobPercentY));
+            AlienElysiumGame.sceneManager.camera.translate(cameraDirection.scl(movementSpeed * knobPercentY));
+
 
             // Mover la cámara hacia los lados
-            AlienElysiumGame.scene.getCamera("camera").translate(translation);
-           // AlienElysiumGame.scene.camera.translate(translation);
-            AlienElysiumGame.scene.getCamera("camera").update();
-          //  AlienElysiumGame.scene.cam.update();
+            AlienElysiumGame.sceneManager.camera.translate(translation);
+
+            AlienElysiumGame.sceneManager.camera.update();
+
 
 
         }
     }
 }
-            // Mover la cámara según la posición del Touchpad
-          //  MyGdxGame.scene.cam.translate(MyGdxGame.scene.cam.direction.cpy().scl(knobPercentY * movementSpeed));
-            //MyGdxGame.scene.cam.translate(MyGdxGame.scene.cam.up.cpy().scl(-knobPercentX * movementSpeed));
 
-            // Ajustar la orientación de la cámara según la posición vertical del Touchpad
-           // float deltaYaw = -knobPercentY * movementSpeed;
-            //float deltaPitch = 2; // Ajusta según sea necesario
-            //MyGdxGame.scene.cam.rotate(new Quaternion().setEulerAngles(deltaPitch, deltaYaw, 0));
