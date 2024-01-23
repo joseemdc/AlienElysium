@@ -195,10 +195,11 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		sceneManager.update(deltaTime);
 		sceneManager.render();
 
+
 		stage.act(Gdx.graphics.getDeltaTime());
 		controller.update();
 		stage.draw();
-		Gdx.app.log("MENSAXES",camera.direction.toString());
+		//Gdx.app.log("MENSAXES",camera.direction.toString());
 	}
 	
 	@Override
