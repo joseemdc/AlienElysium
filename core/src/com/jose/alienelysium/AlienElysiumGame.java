@@ -6,11 +6,16 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.model.MeshPart;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
@@ -38,6 +43,7 @@ import net.mgsx.gltf.scene3d.lights.DirectionalLightEx;
 import net.mgsx.gltf.scene3d.scene.Scene;
 import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import net.mgsx.gltf.scene3d.scene.SceneManager;
+import net.mgsx.gltf.scene3d.scene.SceneModel;
 import net.mgsx.gltf.scene3d.scene.SceneSkybox;
 import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider;
 import net.mgsx.gltf.scene3d.utils.IBLBuilder;
@@ -89,6 +95,18 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 
 		}
 		sceneAsset=assetManager.get("models/pasillos.gltf", SceneAsset.class);
+		// Carga el atlas con TexturePacker
+		TextureAtlas textureAtlas = new TextureAtlas(Gdx.files.internal("models/walls/wallpack.atlas"));
+// Itera sobre los materiales del modelo y reemplaza las texturas
+
+
+
+		for (Texture texture : sceneAsset.textures) {
+			// Configura el filtro para utilizar mipmaps
+			//texture.setFilter(Texture.TextureFilter.MipMapLinearNearest, Texture.TextureFilter.Linear);
+			texture.setFilter(Texture.TextureFilter.MipMapNearestNearest,Texture.TextureFilter.MipMapNearestNearest);
+			// Puedes ajustar otros parámetros según tus necesidades
+		}
 		Texture front = manager.get("skybox/front.png", Texture.class);
 		Texture back = manager.get("skybox/back.png", Texture.class);
 		Texture left = manager.get("skybox/left.png", Texture.class);
@@ -104,9 +122,11 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 
 		// setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
 		camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		float d = 30f;
-		camera.near = d / 1000f;
-		camera.far = d * 4;
+		//float d = 30f;
+		//camera.near = d / 1000f;
+		//camera.far = d * 4;
+		camera.near = 0.1f;  // plano cercano
+		camera.far = 100f;   // plano lejano
 		camera.position.set(22.610344f,2.1261232f,2.8562768f);
 		camera.direction.set(-0.99996257f,3.408191E-6f,0.008726494f);
 
@@ -133,9 +153,12 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		brdfLUT = new Texture(Gdx.files.classpath("net/mgsx/gltf/shaders/brdfLUT.png"));
 
 		sceneManager.setAmbientLight(1f);
+
+
 		sceneManager.environment.set(new PBRTextureAttribute(PBRTextureAttribute.BRDFLUTTexture, brdfLUT));
 		sceneManager.environment.set(PBRCubemapAttribute.createSpecularEnv(specularCubemap));
 		sceneManager.environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuseCubemap));
+
 
 		// Create a new Cubemap using the loaded textures
 		//Cubemap skyboxCubemap = new Cubemap((TextureData) front, (TextureData) back, (TextureData) up, (TextureData) down, (TextureData) right, (TextureData) left);
