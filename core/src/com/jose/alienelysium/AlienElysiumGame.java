@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
@@ -28,6 +29,8 @@ import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
+
+import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader;
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute;
 import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute;
@@ -56,12 +59,16 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 	public static FirstPersonCameraController controller;
 	InputMultiplexer inputMultiplexer;
 	private Stage stage;
+	private AssetManager assetManager= new AssetManager();
 	private Skin touchpadSkin;
 	GestureDetector gd;
+	private float timeSpent;
 
-	
+
+
 	@Override
 	public void create () {
+
 		Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
 		manager.load("skybox/front.png", Texture.class);
 		manager.load("skybox/back.png", Texture.class);
@@ -71,11 +78,17 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		manager.load("skybox/bottom.png", Texture.class);
 		manager.load("ui/JoystickSplitted.png", Texture.class);
 		manager.load("ui/SmallHandleFilledGrey.png", Texture.class);
-		sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/pasillos.gltf"));
+		//sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/pasillos.gltf"));
 		stage = new Stage();
+	 assetManager.setLoader(SceneAsset.class, ".gltf", new GLTFAssetLoader());
+		assetManager.load("models/pasillos.gltf", SceneAsset.class);
+		while(!assetManager.update()){
+
+		}
 		while(!manager.update()){
 
 		}
+		sceneAsset=assetManager.get("models/pasillos.gltf", SceneAsset.class);
 		Texture front = manager.get("skybox/front.png", Texture.class);
 		Texture back = manager.get("skybox/back.png", Texture.class);
 		Texture left = manager.get("skybox/left.png", Texture.class);
@@ -179,7 +192,17 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 
 	@Override
 	public void render () {
-
+		timeSpent += Gdx.graphics.getDeltaTime();
+		if(timeSpent > 1) {
+			//The following loop will try to catch up if you're not at 30 fps.
+			//This code will reset the amount of time it needs to spend catching up if there's too
+			//much to do (maybe because the device can't keep up).
+			timeSpent = 1 / 30F;
+		}
+		while (timeSpent >= 1 / 30F) {
+			//Run your code
+			timeSpent -= 1 / 30F;
+		}
 		float deltaTime = Gdx.graphics.getDeltaTime();
 		time += deltaTime;
 
@@ -188,7 +211,6 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 //		camera.up.set(Vector3.Y);
 //		camera.lookAt(Vector3.Zero);
 //		camera.update();
-
 		// render
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
@@ -200,8 +222,11 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		controller.update();
 		stage.draw();
 		//Gdx.app.log("MENSAXES",camera.direction.toString());
+
+		Gdx.app.log("Rendimiento", String.valueOf(Gdx.graphics.getFramesPerSecond()));
+
 	}
-	
+
 	@Override
 	public void dispose () {
 		sceneManager.dispose();

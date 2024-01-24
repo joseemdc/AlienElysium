@@ -36,6 +36,7 @@ Files files;
     @Override
     public void act (float delta) {
         super.act(delta);
+
         if(isTouched()){
             // Mover al personaje o cualquier otra cosa que quieras hacer
             Gdx.app.log("MyTag", "Touched");
@@ -44,7 +45,7 @@ Files files;
             float knobPercentY = getKnobPercentY();
 
             // Ajustar la velocidad de movimiento según tus necesidades
-            float movementSpeed = 0.05f;
+            float movementSpeed = 0.2f;
 // Crear un Vector3 para el desplazamiento en los ejes X e Y
 //            Vector3 translation = new Vector3(-knobPercentX * movementSpeed, knobPercentY * movementSpeed, 0);
 //
