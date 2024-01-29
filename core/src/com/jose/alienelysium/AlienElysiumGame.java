@@ -8,11 +8,16 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.model.MeshPart;
+import com.badlogic.gdx.graphics.g3d.shaders.DepthShader;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
+import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
@@ -45,9 +50,14 @@ import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import net.mgsx.gltf.scene3d.scene.SceneManager;
 import net.mgsx.gltf.scene3d.scene.SceneModel;
 import net.mgsx.gltf.scene3d.scene.SceneSkybox;
+import net.mgsx.gltf.scene3d.shaders.PBRDepthShaderProvider;
+import net.mgsx.gltf.scene3d.shaders.PBRShaderConfig;
 import net.mgsx.gltf.scene3d.shaders.PBRShaderProvider;
 import net.mgsx.gltf.scene3d.utils.IBLBuilder;
 import net.mgsx.gltf.scene3d.scene.SceneSkybox;
+import com.badlogic.gdx.physics.bullet.Bullet;
+import com.badlogic.gdx.physics.bullet.*;
+import com.jose.alienelysium.utils.BulletPhysicsSystem;
 
 public class AlienElysiumGame extends ApplicationAdapter implements GestureDetector.GestureListener,InputProcessor {
 	public static SceneManager sceneManager;
@@ -69,12 +79,22 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 	private Skin touchpadSkin;
 	GestureDetector gd;
 	private float timeSpent;
+	Vector3 velocity = new Vector3();
+	Vector3 gravity = new Vector3(0, -0.1f, 0);  // Puedes ajustar el valor según tus necesidades.
+
 
 
 
 	@Override
 	public void create () {
+		Bullet.init();
+		PBRShaderConfig config = PBRShaderProvider.createDefaultConfig();
+		config.numBones = 60;
+		config.numDirectionalLights = 1;
+		config.numPointLights = 0;
 
+		DepthShader.Config depthConfig = PBRShaderProvider.createDefaultDepthConfig();
+		depthConfig.numBones = 60;
 		Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
 		manager.load("skybox/front.png", Texture.class);
 		manager.load("skybox/back.png", Texture.class);
@@ -116,12 +136,22 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		Texture tex = manager.get("ui/JoystickSplitted.png", Texture.class);
 		Texture tex2 = manager.get("ui/SmallHandleFilledGrey.png", Texture.class);
 // create scene
+		Model sceneModel = assetManager.get("models/pasillos.gltf", Model.class);
+		ModelInstance sceneInstance = new ModelInstance(sceneModel);
+
 		scene = new Scene(sceneAsset.scene);
-		sceneManager = new SceneManager();
+		sceneManager = new SceneManager(new PBRShaderProvider(config), new PBRDepthShaderProvider(depthConfig));
 		sceneManager.addScene(scene);
+		//btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
+		btCollisionShape shape2 = Bullet.obtainStaticNodeShape(scene.modelInstance.nodes);
+		btRigidBody.btRigidBodyConstructionInfo sceneInfo = new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape2, Vector3.Zero);
+		btRigidBody body = new btRigidBody(sceneInfo);
+		BulletPhysicsSystem bulletPhysicsSystem= new BulletPhysicsSystem();
+		bulletPhysicsSystem.addBody(body);
 
 		// setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
-		camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		//camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		camera = new PerspectiveCamera(60f, 720, 480);
 		//float d = 30f;
 		//camera.near = d / 1000f;
 		//camera.far = d * 4;
@@ -239,6 +269,10 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 
 		sceneManager.update(deltaTime);
 		sceneManager.render();
+
+		//gravity
+		velocity.add(gravity);  // Aplicar la gravedad
+		camera.position.add(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
 
 
 		stage.act(Gdx.graphics.getDeltaTime());
