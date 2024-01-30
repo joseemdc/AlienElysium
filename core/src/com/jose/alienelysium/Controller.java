@@ -35,6 +35,7 @@ Files files;
     }
     @Override
     public void act (float delta) {
+
         super.act(delta);
 
         if(isTouched()){

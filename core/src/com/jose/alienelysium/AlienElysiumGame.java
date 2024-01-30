@@ -16,8 +16,17 @@ import com.badlogic.gdx.graphics.g3d.shaders.DepthShader;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.bullet.collision.btBroadphaseInterface;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionConfiguration;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionShape;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionWorld;
+import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
+import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
+import com.badlogic.gdx.physics.bullet.collision.btDispatcher;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
+import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
@@ -78,8 +87,15 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 	private AssetManager assetManager= new AssetManager();
 	private Skin touchpadSkin;
 	GestureDetector gd;
-	private float timeSpent;
+	public static float timeSpent;
+	public static float fps=60f;
 	Vector3 velocity = new Vector3();
+	DebugDrawer debugDrawer;
+	static btCollisionWorld collisionWorld;
+	public static btCollisionObject collisiontestobject;
+	btCollisionConfiguration collisionConfig;
+	static btDispatcher dispatcher;
+	btBroadphaseInterface broadphase;
 	Vector3 gravity = new Vector3(0, -0.1f, 0);  // Puedes ajustar el valor según tus necesidades.
 
 
@@ -136,8 +152,8 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		Texture tex = manager.get("ui/JoystickSplitted.png", Texture.class);
 		Texture tex2 = manager.get("ui/SmallHandleFilledGrey.png", Texture.class);
 // create scene
-		Model sceneModel = assetManager.get("models/pasillos.gltf", Model.class);
-		ModelInstance sceneInstance = new ModelInstance(sceneModel);
+		//Model sceneModel = assetManager.get("models/pasillos.gltf", Model.class);
+		//ModelInstance sceneInstance = new ModelInstance(sceneModel);
 
 		scene = new Scene(sceneAsset.scene);
 		sceneManager = new SceneManager(new PBRShaderProvider(config), new PBRDepthShaderProvider(depthConfig));
@@ -146,9 +162,19 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		btCollisionShape shape2 = Bullet.obtainStaticNodeShape(scene.modelInstance.nodes);
 		btRigidBody.btRigidBodyConstructionInfo sceneInfo = new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape2, Vector3.Zero);
 		btRigidBody body = new btRigidBody(sceneInfo);
-		BulletPhysicsSystem bulletPhysicsSystem= new BulletPhysicsSystem();
-		bulletPhysicsSystem.addBody(body);
-
+		//BulletPhysicsSystem bulletPhysicsSystem= new BulletPhysicsSystem();
+		//bulletPhysicsSystem.addBody(body);
+		collisionConfig = new btDefaultCollisionConfiguration();
+		dispatcher = new btCollisionDispatcher(collisionConfig);
+		broadphase = new btDbvtBroadphase();
+		collisionWorld = new btCollisionWorld(dispatcher, broadphase, collisionConfig);
+		debugDrawer = new DebugDrawer();
+		debugDrawer.setDebugMode(btIDebugDraw.DebugDrawModes.DBG_MAX_DEBUG_DRAW_MODE);
+		collisiontestobject = new btCollisionObject();
+		collisiontestobject.setCollisionShape(shape2);
+		collisiontestobject.setWorldTransform(new Matrix4());
+		collisionWorld.setDebugDrawer(debugDrawer);
+		collisionWorld.addCollisionObject(collisiontestobject);
 		// setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
 		//camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		camera = new PerspectiveCamera(60f, 720, 480);
@@ -241,21 +267,22 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		//scene.animationController.setAnimation("Take 001_Door_Left.001", -1);
 		scene.animations.loopAll();
 
+		Gdx.graphics.setVSync(true);
 	}
 
 	@Override
 	public void render () {
+
+
 		timeSpent += Gdx.graphics.getDeltaTime();
 		if(timeSpent > 1) {
 			//The following loop will try to catch up if you're not at 30 fps.
 			//This code will reset the amount of time it needs to spend catching up if there's too
 			//much to do (maybe because the device can't keep up).
-			timeSpent = 1 / 30F;
+			timeSpent = 1 / fps;
 		}
-		while (timeSpent >= 1 / 30F) {
+		while (timeSpent >= 1 / fps) {
 			//Run your code
-			timeSpent -= 1 / 30F;
-		}
 		float deltaTime = Gdx.graphics.getDeltaTime();
 		time += deltaTime;
 
@@ -271,16 +298,24 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		sceneManager.render();
 
 		//gravity
-		velocity.add(gravity);  // Aplicar la gravedad
-		camera.position.add(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
+		//velocity.add(gravity);  // Aplicar la gravedad
+		//camera.position.add(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
 
 
+			debugDrawer.begin(camera);
 		stage.act(Gdx.graphics.getDeltaTime());
 		controller.update();
 		stage.draw();
 		//Gdx.app.log("MENSAXES",camera.direction.toString());
 
 		Gdx.app.log("Rendimiento", String.valueOf(Gdx.graphics.getFramesPerSecond()));
+
+
+			collisionWorld.debugDrawWorld();
+			debugDrawer.end();
+			timeSpent -= 1 / fps;
+
+		}
 
 	}
 
