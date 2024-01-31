@@ -1,6 +1,7 @@
 package com.jose.alienelysium;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.TextureData;
@@ -27,6 +28,8 @@ import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration
 import com.badlogic.gdx.physics.bullet.collision.btDispatcher;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Array;
@@ -67,8 +70,11 @@ import net.mgsx.gltf.scene3d.scene.SceneSkybox;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.*;
 import com.jose.alienelysium.utils.BulletPhysicsSystem;
+import com.kotcrab.vis.ui.VisUI;
+import com.kotcrab.vis.ui.widget.VisImageButton;
+import com.kotcrab.vis.ui.widget.VisTextButton;
 
-public class AlienElysiumGame extends ApplicationAdapter implements GestureDetector.GestureListener,InputProcessor {
+public class AlienElysiumGame extends Game implements GestureDetector.GestureListener,InputProcessor {
 	public static SceneManager sceneManager;
 	private SceneAsset sceneAsset;
 	public static Scene scene;
@@ -97,6 +103,9 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 	static btDispatcher dispatcher;
 	btBroadphaseInterface broadphase;
 	Vector3 gravity = new Vector3(0, -0.1f, 0);  // Puedes ajustar el valor según tus necesidades.
+	//VisImageButton pauseBtn= new VisImageButton();
+
+
 
 
 
@@ -268,6 +277,28 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		scene.animations.loopAll();
 
 		Gdx.graphics.setVSync(true);
+		VisUI.load(VisUI.SkinScale.X2);
+		VisTextButton.VisTextButtonStyle buttonStyle = new VisTextButton.VisTextButtonStyle();
+		BitmapFont fonr = new BitmapFont();
+		fonr.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		//fonr.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+		//fonr.getRegion().getTexture().setFilter(Texture.TextureFilter.MipMap, Texture.TextureFilter.MipMap);
+		//fonr.getRegion().getTexture().setFilter(Texture.TextureFilter.MipMapLinearNearest, Texture.TextureFilter.MipMapLinearNearest);
+		buttonStyle.font=fonr;
+		buttonStyle.font.getData().setScale(5f);
+		VisTextButton pausetxt = new VisTextButton("Pausa",buttonStyle);
+		pausetxt.setBounds(Gdx.graphics.getWidth()-300f,Gdx.graphics.getHeight()-250f,200f,200f);
+		//pausetxt.setBounds(600,350,200f,200f);
+
+		pausetxt.addListener(new InputListener(){
+			@Override
+			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+				Gdx.app.log("MENSAXES","Pausar");
+				AlienElysiumGame.this.setScreen(new com.jose.alienelysium.screens.SettingsScreen());
+				return true;
+			}
+		});
+		stage.addActor(pausetxt);
 	}
 
 	@Override
@@ -302,7 +333,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		//camera.position.add(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
 
 
-			debugDrawer.begin(camera);
+		//	debugDrawer.begin(camera);
 		stage.act(Gdx.graphics.getDeltaTime());
 		controller.update();
 		stage.draw();
@@ -311,8 +342,8 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		Gdx.app.log("Rendimiento", String.valueOf(Gdx.graphics.getFramesPerSecond()));
 
 
-			collisionWorld.debugDrawWorld();
-			debugDrawer.end();
+			//collisionWorld.debugDrawWorld();
+			//debugDrawer.end();
 			timeSpent -= 1 / fps;
 
 		}
@@ -328,6 +359,7 @@ public class AlienElysiumGame extends ApplicationAdapter implements GestureDetec
 		specularCubemap.dispose();
 		brdfLUT.dispose();
 		skybox.dispose();
+		VisUI.dispose();
 
 	}
 
