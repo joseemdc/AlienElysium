@@ -1,5 +1,8 @@
 package com.jose.alienelysium;
 
+import static com.jose.alienelysium.AlienElysiumGame.camera;
+import static com.jose.alienelysium.AlienElysiumGame.cameraBody;
+
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
@@ -68,12 +71,15 @@ Files files;
             );
 
             // Desplazar la cámara hacia adelante/atrás
-            AlienElysiumGame.sceneManager.camera.translate(cameraDirection.scl(movementSpeed * knobPercentY));
-
+            //AlienElysiumGame.sceneManager.camera.translate(cameraDirection.scl(movementSpeed * knobPercentY));
+            cameraBody.translate(cameraDirection.scl(movementSpeed * knobPercentY));
+            cameraBody.translate(translation);
 
             // Mover la cámara hacia los lados
-            AlienElysiumGame.sceneManager.camera.translate(translation);
+            //AlienElysiumGame.sceneManager.camera.translate(translation);
 
+//            Vector3 force = new Vector3(camera.direction).scl(0.1f); // Ajusta la velocidad según tus necesidades
+//            cameraBody.applyCentralForce(force);
             AlienElysiumGame.sceneManager.camera.update();
 
 

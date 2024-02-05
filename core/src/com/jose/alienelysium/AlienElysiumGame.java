@@ -11,12 +11,15 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.model.MeshPart;
 import com.badlogic.gdx.graphics.g3d.shaders.DepthShader;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.bullet.collision.btBoxShape;
 import com.badlogic.gdx.physics.bullet.collision.btBroadphaseInterface;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionConfiguration;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
@@ -105,6 +108,10 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 	Vector3 gravity = new Vector3(0, -0.1f, 0);  // Puedes ajustar el valor según tus necesidades.
 	//VisImageButton pauseBtn= new VisImageButton();
 
+	public static btRigidBody cameraBody;
+	protected BulletPhysicsSystem bulletPhysicsSystem;
+	protected Array<ModelInstance> renderInstances;
+
 
 
 
@@ -162,15 +169,20 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		Texture tex2 = manager.get("ui/SmallHandleFilledGrey.png", Texture.class);
 // create scene
 		//Model sceneModel = assetManager.get("models/pasillos.gltf", Model.class);
-		//ModelInstance sceneInstance = new ModelInstance(sceneModel);
-
+		bulletPhysicsSystem = new BulletPhysicsSystem();
+		renderInstances = new Array<>();
+		ModelInstance sceneInstance = new ModelInstance(sceneAsset.scene.model);
+		renderInstances.add(sceneInstance);
+		btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
+		btRigidBody.btRigidBodyConstructionInfo sceneInfo = new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape, Vector3.Zero);
+		btRigidBody body = new btRigidBody(sceneInfo);
+		bulletPhysicsSystem.addBody(body);
 		scene = new Scene(sceneAsset.scene);
 		sceneManager = new SceneManager(new PBRShaderProvider(config), new PBRDepthShaderProvider(depthConfig));
 		sceneManager.addScene(scene);
 		//btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
 		btCollisionShape shape2 = Bullet.obtainStaticNodeShape(scene.modelInstance.nodes);
-		btRigidBody.btRigidBodyConstructionInfo sceneInfo = new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape2, Vector3.Zero);
-		btRigidBody body = new btRigidBody(sceneInfo);
+
 		//BulletPhysicsSystem bulletPhysicsSystem= new BulletPhysicsSystem();
 		//bulletPhysicsSystem.addBody(body);
 		collisionConfig = new btDefaultCollisionConfiguration();
@@ -184,6 +196,26 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		collisiontestobject.setWorldTransform(new Matrix4());
 		collisionWorld.setDebugDrawer(debugDrawer);
 		collisionWorld.addCollisionObject(collisiontestobject);
+
+
+		btCollisionShape cameraShape = new btBoxShape(new Vector3(1f, 1f, 1f)); // Ajusta las dimensiones según la forma de tu cámara
+		btRigidBody.btRigidBodyConstructionInfo cameraInfo = new btRigidBody.btRigidBodyConstructionInfo(5f, null, cameraShape, Vector3.Zero);
+		 cameraBody = new btRigidBody(cameraInfo);
+// Configura la forma de colisión para la cámara
+		btCollisionShape collisionShape = new btBoxShape(new Vector3(1f, 1f, 1f)); // Ajusta las dimensiones según la forma de tu cámara
+		cameraBody.setCollisionShape(collisionShape);
+		cameraBody.translate(new Vector3(22.610344f,2.1261232f,2.8562768f));
+
+// Añade el cuerpo de la cámara al mundo de físicas
+		collisionWorld.addCollisionObject(cameraBody);
+
+
+
+		bulletPhysicsSystem.addBody(cameraBody);
+
+
+//
+
 		// setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
 		//camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		camera = new PerspectiveCamera(60f, 720, 480);
@@ -317,6 +349,22 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		float deltaTime = Gdx.graphics.getDeltaTime();
 		time += deltaTime;
 
+			// Obtener la transformación del cuerpo rígido del objeto
+			Matrix4 transform = new Matrix4();
+			cameraBody.getWorldTransform(transform);
+
+			// Obtener la posición y la orientación del objeto
+			Vector3 posicionObjeto = new Vector3();
+			Quaternion orientacionObjeto = new Quaternion();
+			transform.getTranslation(posicionObjeto);
+			transform.getRotation(orientacionObjeto);
+
+			// Configurar la posición y la orientación de la cámara según el objeto
+			camera.position.set(posicionObjeto);
+			//camera.direction.set(Vector3.Z);  // Puedes ajustar la dirección de la cámara según tus necesidades
+			camera.up.set(Vector3.Y);  // Puedes ajustar el vector "up" según tus necesidades
+			//camera.rotate(orientacionObjeto);
+			camera.update();
 		// animate camera
 //		camera.position.setFromSpherical(MathUtils.PI/4, time * .3f).scl(.02f);
 //		camera.up.set(Vector3.Y);
@@ -331,12 +379,20 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		//gravity
 		//velocity.add(gravity);  // Aplicar la gravedad
 		//camera.position.add(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
-
+			if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+				Vector3 force = new Vector3(camera.direction).scl(0.1f); // Ajusta la velocidad según tus necesidades
+				cameraBody.applyCentralForce(force);
+			}
 
 		//	debugDrawer.begin(camera);
 		stage.act(Gdx.graphics.getDeltaTime());
+
 		controller.update();
-		stage.draw();
+
+
+
+
+			stage.draw();
 		//Gdx.app.log("MENSAXES",camera.direction.toString());
 
 		Gdx.app.log("Rendimiento", String.valueOf(Gdx.graphics.getFramesPerSecond()));
