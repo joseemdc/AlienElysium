@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
@@ -19,8 +20,11 @@ import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.bullet.collision.CollisionObjectWrapper;
 import com.badlogic.gdx.physics.bullet.collision.btBoxShape;
 import com.badlogic.gdx.physics.bullet.collision.btBroadphaseInterface;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionAlgorithm;
+import com.badlogic.gdx.physics.bullet.collision.btCollisionAlgorithmConstructionInfo;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionConfiguration;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
@@ -29,6 +33,9 @@ import com.badlogic.gdx.physics.bullet.collision.btCollisionWorld;
 import com.badlogic.gdx.physics.bullet.collision.btDbvtBroadphase;
 import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
 import com.badlogic.gdx.physics.bullet.collision.btDispatcher;
+import com.badlogic.gdx.physics.bullet.collision.btDispatcherInfo;
+import com.badlogic.gdx.physics.bullet.collision.btManifoldResult;
+import com.badlogic.gdx.physics.bullet.collision.btSphereBoxCollisionAlgorithm;
 import com.badlogic.gdx.physics.bullet.dynamics.btRigidBody;
 import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -111,7 +118,9 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 	public static btRigidBody cameraBody;
 	protected BulletPhysicsSystem bulletPhysicsSystem;
 	protected Array<ModelInstance> renderInstances;
-
+	private ModelBatch modelBatch;
+	private Array<ModelInstance> instances;
+	btRigidBody body;
 
 
 
@@ -120,6 +129,117 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 	@Override
 	public void create () {
 		Bullet.init();
+		modelBatch= new ModelBatch();
+		instances = new Array<ModelInstance>();
+		stage = new Stage();
+		setEnvironment();
+		setPhysics();
+		//sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/pasillos.gltf"));
+
+
+
+// create scene
+		//Model sceneModel = assetManager.get("models/pasillos.gltf", Model.class);
+
+
+
+//
+
+
+
+		//scene.animationController.setAnimation("Take 001_Door_Left.001", -1);
+		scene.animations.loopAll();
+
+
+	}
+
+	@Override
+	public void render () {
+
+
+		timeSpent += Gdx.graphics.getDeltaTime();
+		if(timeSpent > 1) {
+			//The following loop will try to catch up if you're not at 30 fps.
+			//This code will reset the amount of time it needs to spend catching up if there's too
+			//much to do (maybe because the device can't keep up).
+			timeSpent = 1 / fps;
+		}
+		while (timeSpent >= 1 / fps) {
+			//Run your code
+		float deltaTime = Gdx.graphics.getDeltaTime();
+		time += deltaTime;
+
+			// Obtener la transformación del cuerpo rígido del objeto
+			Matrix4 transform = new Matrix4();
+			cameraBody.getWorldTransform(transform);
+			modelBatch.begin(camera);
+			modelBatch.render(instances, sceneManager.environment);
+			modelBatch.end();
+			// Obtener la posición y la orientación del objeto
+			Vector3 posicionObjeto = new Vector3();
+			Quaternion orientacionObjeto = new Quaternion();
+			transform.getTranslation(posicionObjeto);
+			transform.getRotation(orientacionObjeto);
+
+			// Configurar la posición y la orientación de la cámara según el objeto
+			camera.position.set(posicionObjeto);
+			//camera.direction.set(Vector3.Z);  // Puedes ajustar la dirección de la cámara según tus necesidades
+			camera.up.set(Vector3.Y);  // Puedes ajustar el vector "up" según tus necesidades
+			//camera.rotate(orientacionObjeto);
+			camera.update();
+
+		// render
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
+		sceneManager.update(deltaTime);
+		sceneManager.render();
+
+		//gravity
+		//velocity.add(gravity);  // Aplicar la gravedad
+		//camera.position.add(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
+			if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+				Vector3 force = new Vector3(camera.direction).scl(0.1f); // Ajusta la velocidad según tus necesidades
+				cameraBody.applyCentralForce(force);
+			}
+
+			//debugDrawer.begin(camera);
+		stage.act(Gdx.graphics.getDeltaTime());
+
+		controller.update();
+
+if(checkCollision()){
+	Gdx.app.log("Collision","Chocando");
+}
+
+
+			stage.draw();
+		//Gdx.app.log("MENSAXES",camera.direction.toString());
+
+		Gdx.app.log("Rendimiento", String.valueOf(Gdx.graphics.getFramesPerSecond()));
+
+
+			//collisionWorld.debugDrawWorld();
+			//debugDrawer.end();
+			timeSpent -= 1 / fps;
+
+		}
+
+	}
+
+	@Override
+	public void dispose () {
+		sceneManager.dispose();
+		sceneAsset.dispose();
+		environmentCubemap.dispose();
+		diffuseCubemap.dispose();
+		modelBatch.dispose();
+		specularCubemap.dispose();
+		brdfLUT.dispose();
+		skybox.dispose();
+		VisUI.dispose();
+
+	}
+	public void setEnvironment(){
 		PBRShaderConfig config = PBRShaderProvider.createDefaultConfig();
 		config.numBones = 60;
 		config.numDirectionalLights = 1;
@@ -136,9 +256,7 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		manager.load("skybox/bottom.png", Texture.class);
 		manager.load("ui/JoystickSplitted.png", Texture.class);
 		manager.load("ui/SmallHandleFilledGrey.png", Texture.class);
-		//sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/pasillos.gltf"));
-		stage = new Stage();
-	 assetManager.setLoader(SceneAsset.class, ".gltf", new GLTFAssetLoader());
+		assetManager.setLoader(SceneAsset.class, ".gltf", new GLTFAssetLoader());
 		assetManager.load("models/pasillos.gltf", SceneAsset.class);
 		while(!assetManager.update()){
 
@@ -147,11 +265,6 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 
 		}
 		sceneAsset=assetManager.get("models/pasillos.gltf", SceneAsset.class);
-		// Carga el atlas con TexturePacker
-		TextureAtlas textureAtlas = new TextureAtlas(Gdx.files.internal("models/walls/wallpack.atlas"));
-// Itera sobre los materiales del modelo y reemplaza las texturas
-
-
 
 		for (Texture texture : sceneAsset.textures) {
 			// Configura el filtro para utilizar mipmaps
@@ -159,6 +272,11 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 			texture.setFilter(Texture.TextureFilter.MipMapNearestNearest,Texture.TextureFilter.MipMapNearestNearest);
 			// Puedes ajustar otros parámetros según tus necesidades
 		}
+
+
+
+
+
 		Texture front = manager.get("skybox/front.png", Texture.class);
 		Texture back = manager.get("skybox/back.png", Texture.class);
 		Texture left = manager.get("skybox/left.png", Texture.class);
@@ -167,55 +285,9 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		Texture down = manager.get("skybox/bottom.png", Texture.class);
 		Texture tex = manager.get("ui/JoystickSplitted.png", Texture.class);
 		Texture tex2 = manager.get("ui/SmallHandleFilledGrey.png", Texture.class);
-// create scene
-		//Model sceneModel = assetManager.get("models/pasillos.gltf", Model.class);
-		bulletPhysicsSystem = new BulletPhysicsSystem();
-		renderInstances = new Array<>();
-		ModelInstance sceneInstance = new ModelInstance(sceneAsset.scene.model);
-		renderInstances.add(sceneInstance);
-		btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
-		btRigidBody.btRigidBodyConstructionInfo sceneInfo = new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape, Vector3.Zero);
-		btRigidBody body = new btRigidBody(sceneInfo);
-		bulletPhysicsSystem.addBody(body);
 		scene = new Scene(sceneAsset.scene);
 		sceneManager = new SceneManager(new PBRShaderProvider(config), new PBRDepthShaderProvider(depthConfig));
 		sceneManager.addScene(scene);
-		//btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
-		btCollisionShape shape2 = Bullet.obtainStaticNodeShape(scene.modelInstance.nodes);
-
-		//BulletPhysicsSystem bulletPhysicsSystem= new BulletPhysicsSystem();
-		//bulletPhysicsSystem.addBody(body);
-		collisionConfig = new btDefaultCollisionConfiguration();
-		dispatcher = new btCollisionDispatcher(collisionConfig);
-		broadphase = new btDbvtBroadphase();
-		collisionWorld = new btCollisionWorld(dispatcher, broadphase, collisionConfig);
-		debugDrawer = new DebugDrawer();
-		debugDrawer.setDebugMode(btIDebugDraw.DebugDrawModes.DBG_MAX_DEBUG_DRAW_MODE);
-		collisiontestobject = new btCollisionObject();
-		collisiontestobject.setCollisionShape(shape2);
-		collisiontestobject.setWorldTransform(new Matrix4());
-		collisionWorld.setDebugDrawer(debugDrawer);
-		collisionWorld.addCollisionObject(collisiontestobject);
-
-
-		btCollisionShape cameraShape = new btBoxShape(new Vector3(1f, 1f, 1f)); // Ajusta las dimensiones según la forma de tu cámara
-		btRigidBody.btRigidBodyConstructionInfo cameraInfo = new btRigidBody.btRigidBodyConstructionInfo(5f, null, cameraShape, Vector3.Zero);
-		 cameraBody = new btRigidBody(cameraInfo);
-// Configura la forma de colisión para la cámara
-		btCollisionShape collisionShape = new btBoxShape(new Vector3(1f, 1f, 1f)); // Ajusta las dimensiones según la forma de tu cámara
-		cameraBody.setCollisionShape(collisionShape);
-		cameraBody.translate(new Vector3(22.610344f,2.1261232f,2.8562768f));
-
-// Añade el cuerpo de la cámara al mundo de físicas
-		collisionWorld.addCollisionObject(cameraBody);
-
-
-
-		bulletPhysicsSystem.addBody(cameraBody);
-
-
-//
-
 		// setup camera (The BoomBox model is very small so you may need to adapt camera settings for your scene)
 		//camera = new PerspectiveCamera(60f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		camera = new PerspectiveCamera(60f, 720, 480);
@@ -237,6 +309,7 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		light.direction.set(1, -3, 1).nor();
 		light.color.set(Color.WHITE);
 		sceneManager.environment.add(light);
+
 
 		// setup quick IBL (image based lighting)
 		IBLBuilder iblBuilder = IBLBuilder.createOutdoor(light);
@@ -304,10 +377,6 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		inputMultiplexer.addProcessor(stage);
 		inputMultiplexer.addProcessor(controller);
 		Gdx.input.setInputProcessor(inputMultiplexer);
-
-		//scene.animationController.setAnimation("Take 001_Door_Left.001", -1);
-		scene.animations.loopAll();
-
 		Gdx.graphics.setVSync(true);
 		VisUI.load(VisUI.SkinScale.X2);
 		VisTextButton.VisTextButtonStyle buttonStyle = new VisTextButton.VisTextButtonStyle();
@@ -332,93 +401,77 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 		});
 		stage.addActor(pausetxt);
 	}
+	public void setPhysics(){
+		bulletPhysicsSystem = new BulletPhysicsSystem();
+		renderInstances = new Array<>();
+		ModelInstance sceneInstance = new ModelInstance(sceneAsset.scene.model);
+		renderInstances.add(sceneInstance);
+		btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
+		btRigidBody.btRigidBodyConstructionInfo sceneInfo = new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape, Vector3.Zero);
+		body = new btRigidBody(sceneInfo);
+		bulletPhysicsSystem.addBody(body);
 
-	@Override
-	public void render () {
+		//btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
+		btCollisionShape shape2 = Bullet.obtainStaticNodeShape(scene.modelInstance.nodes);
 
-
-		timeSpent += Gdx.graphics.getDeltaTime();
-		if(timeSpent > 1) {
-			//The following loop will try to catch up if you're not at 30 fps.
-			//This code will reset the amount of time it needs to spend catching up if there's too
-			//much to do (maybe because the device can't keep up).
-			timeSpent = 1 / fps;
-		}
-		while (timeSpent >= 1 / fps) {
-			//Run your code
-		float deltaTime = Gdx.graphics.getDeltaTime();
-		time += deltaTime;
-
-			// Obtener la transformación del cuerpo rígido del objeto
-			Matrix4 transform = new Matrix4();
-			cameraBody.getWorldTransform(transform);
-
-			// Obtener la posición y la orientación del objeto
-			Vector3 posicionObjeto = new Vector3();
-			Quaternion orientacionObjeto = new Quaternion();
-			transform.getTranslation(posicionObjeto);
-			transform.getRotation(orientacionObjeto);
-
-			// Configurar la posición y la orientación de la cámara según el objeto
-			camera.position.set(posicionObjeto);
-			//camera.direction.set(Vector3.Z);  // Puedes ajustar la dirección de la cámara según tus necesidades
-			camera.up.set(Vector3.Y);  // Puedes ajustar el vector "up" según tus necesidades
-			//camera.rotate(orientacionObjeto);
-			camera.update();
-		// animate camera
-//		camera.position.setFromSpherical(MathUtils.PI/4, time * .3f).scl(.02f);
-//		camera.up.set(Vector3.Y);
-//		camera.lookAt(Vector3.Zero);
-//		camera.update();
-		// render
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
-		sceneManager.update(deltaTime);
-		sceneManager.render();
-
-		//gravity
-		//velocity.add(gravity);  // Aplicar la gravedad
-		//camera.position.add(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
-			if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-				Vector3 force = new Vector3(camera.direction).scl(0.1f); // Ajusta la velocidad según tus necesidades
-				cameraBody.applyCentralForce(force);
-			}
-
-		//	debugDrawer.begin(camera);
-		stage.act(Gdx.graphics.getDeltaTime());
-
-		controller.update();
+		//BulletPhysicsSystem bulletPhysicsSystem= new BulletPhysicsSystem();
+		//bulletPhysicsSystem.addBody(body);
+		collisionConfig = new btDefaultCollisionConfiguration();
+		dispatcher = new btCollisionDispatcher(collisionConfig);
+		broadphase = new btDbvtBroadphase();
+		collisionWorld = new btCollisionWorld(dispatcher, broadphase, collisionConfig);
+		debugDrawer = new DebugDrawer();
+		debugDrawer.setDebugMode(btIDebugDraw.DebugDrawModes.DBG_MAX_DEBUG_DRAW_MODE);
+		collisiontestobject = new btCollisionObject();
+		collisiontestobject.setCollisionShape(shape2);
+		collisiontestobject.setWorldTransform(new Matrix4());
+		collisionWorld.setDebugDrawer(debugDrawer);
+		collisionWorld.addCollisionObject(collisiontestobject);
 
 
 
+		btCollisionShape cameraShape = new btBoxShape(new Vector3(0.3f, 0.3f, 0.3f)); // Ajusta las dimensiones según la forma de tu cámara
+		btRigidBody.btRigidBodyConstructionInfo cameraInfo = new btRigidBody.btRigidBodyConstructionInfo(5f, null, cameraShape, Vector3.Zero);
+		cameraBody = new btRigidBody(cameraInfo);
+// Configura la forma de colisión para la cámara
+		btCollisionShape collisionShape = new btBoxShape(new Vector3(1f, 1f, 1f)); // Ajusta las dimensiones según la forma de tu cámara
+		cameraBody.setCollisionShape(collisionShape);
+		cameraBody.translate(new Vector3(22.610344f,2.1261232f,2.8562768f));
+		btCollisionObject cameraObject= new btCollisionObject();
+		cameraObject.setCollisionShape(collisionShape);
 
-			stage.draw();
-		//Gdx.app.log("MENSAXES",camera.direction.toString());
+		//cameraObject.setWorldTransform();
+// Añade el cuerpo de la cámara al mundo de físicas
+		collisionWorld.addCollisionObject(cameraObject);
 
-		Gdx.app.log("Rendimiento", String.valueOf(Gdx.graphics.getFramesPerSecond()));
 
 
-			//collisionWorld.debugDrawWorld();
-			//debugDrawer.end();
-			timeSpent -= 1 / fps;
-
-		}
-
+		bulletPhysicsSystem.addBody(cameraBody);
 	}
+	boolean checkCollision() {
+		CollisionObjectWrapper co0 = new CollisionObjectWrapper(cameraBody);
+		CollisionObjectWrapper co1 = new CollisionObjectWrapper(body);
 
-	@Override
-	public void dispose () {
-		sceneManager.dispose();
-		sceneAsset.dispose();
-		environmentCubemap.dispose();
-		diffuseCubemap.dispose();
-		specularCubemap.dispose();
-		brdfLUT.dispose();
-		skybox.dispose();
-		VisUI.dispose();
+		btCollisionAlgorithmConstructionInfo ci = new btCollisionAlgorithmConstructionInfo();
+		ci.setDispatcher1(dispatcher);
+		btCollisionAlgorithm algorithm = new btSphereBoxCollisionAlgorithm(null, ci, co0.wrapper, co1.wrapper, false);
 
+		btDispatcherInfo info = new btDispatcherInfo();
+		btManifoldResult result = new btManifoldResult(co0.wrapper, co1.wrapper);
+
+		algorithm.processCollision(co0.wrapper, co1.wrapper, info, result);
+
+		boolean r = result.getPersistentManifold().getNumContacts() > 0;
+
+		result.dispose();
+		info.dispose();
+		algorithm.dispose();
+		ci.dispose();
+		co1.dispose();
+		co0.dispose();
+
+		return r;
 	}
-
 	@Override
 	public boolean keyDown(int keycode) {
 		return false;
