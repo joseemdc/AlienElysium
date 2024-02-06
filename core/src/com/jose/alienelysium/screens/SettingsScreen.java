@@ -26,11 +26,11 @@ public class SettingsScreen extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        super.render(delta);
+      //  super.render(delta);
         ScreenUtils.clear(0, 0, 0.2f, 1);
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
+        Gdx.app.log("MENSAXES","Ajustes");
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         // Aquí puedes dibujar tus elementos en el juego

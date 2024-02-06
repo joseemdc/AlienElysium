@@ -79,10 +79,12 @@ import net.mgsx.gltf.scene3d.utils.IBLBuilder;
 import net.mgsx.gltf.scene3d.scene.SceneSkybox;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.*;
+import com.jose.alienelysium.screens.SettingsScreen;
 import com.jose.alienelysium.utils.BulletPhysicsSystem;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import com.badlogic.gdx.physics.bullet.*;
 
 public class AlienElysiumGame extends Game implements GestureDetector.GestureListener,InputProcessor {
 	public static SceneManager sceneManager;
@@ -121,6 +123,8 @@ public class AlienElysiumGame extends Game implements GestureDetector.GestureLis
 	private ModelBatch modelBatch;
 	private Array<ModelInstance> instances;
 	btRigidBody body;
+
+
 
 
 
@@ -395,7 +399,8 @@ if(checkCollision()){
 			@Override
 			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
 				Gdx.app.log("MENSAXES","Pausar");
-				AlienElysiumGame.this.setScreen(new com.jose.alienelysium.screens.SettingsScreen());
+//				AlienElysiumGame.this.setScreen(new com.jose.alienelysium.screens.SettingsScreen());
+				AlienElysiumGame.this.setScreen(new SettingsScreen(AlienElysiumGame.this));
 				return true;
 			}
 		});
@@ -403,19 +408,20 @@ if(checkCollision()){
 	}
 	public void setPhysics(){
 		bulletPhysicsSystem = new BulletPhysicsSystem();
-		renderInstances = new Array<>();
+
 		ModelInstance sceneInstance = new ModelInstance(sceneAsset.scene.model);
-		renderInstances.add(sceneInstance);
+
 		btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
 		btRigidBody.btRigidBodyConstructionInfo sceneInfo = new btRigidBody.btRigidBodyConstructionInfo(0f, null, shape, Vector3.Zero);
 		body = new btRigidBody(sceneInfo);
 		bulletPhysicsSystem.addBody(body);
 
-		//btCollisionShape shape = Bullet.obtainStaticNodeShape(sceneInstance.nodes);
+
 		btCollisionShape shape2 = Bullet.obtainStaticNodeShape(scene.modelInstance.nodes);
 
 		//BulletPhysicsSystem bulletPhysicsSystem= new BulletPhysicsSystem();
-		//bulletPhysicsSystem.addBody(body);
+		bulletPhysicsSystem.addBody(body);
+
 		collisionConfig = new btDefaultCollisionConfiguration();
 		dispatcher = new btCollisionDispatcher(collisionConfig);
 		broadphase = new btDbvtBroadphase();
@@ -440,13 +446,16 @@ if(checkCollision()){
 		btCollisionObject cameraObject= new btCollisionObject();
 		cameraObject.setCollisionShape(collisionShape);
 
-		//cameraObject.setWorldTransform();
+		cameraObject.setWorldTransform(new Matrix4());
 // Añade el cuerpo de la cámara al mundo de físicas
 		collisionWorld.addCollisionObject(cameraObject);
 
 
 
 		bulletPhysicsSystem.addBody(cameraBody);
+
+
+
 	}
 	boolean checkCollision() {
 		CollisionObjectWrapper co0 = new CollisionObjectWrapper(cameraBody);
